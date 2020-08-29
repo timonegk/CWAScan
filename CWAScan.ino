@@ -6,22 +6,14 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 
+#include <ArduinoJson.h>
+
 #include "CWAScanConfig.h"
 
 int scanTime = 5; //In seconds
 BLEScan* pBLEScan;
-std::vector<std::string> cwaAddresses;
 
-class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
-    void onResult(BLEAdvertisedDevice advertisedDevice) {
-      // Filter for CWA service id (fd6f)
-      if (advertisedDevice.getServiceUUID().toString().rfind("0000fd6f", 0) == 0) {
-        cwaAddresses.push_back(advertisedDevice.getAddress().toString());
-      }
-    }
-};
-
-// Not sure if WiFiClientSecure checks the validity date of the certificate. 
+// Not sure if WiFiClientSecure checks the validity date of the certificate.
 // Setting clock just to be sure...
 void setClock() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
@@ -58,13 +50,10 @@ void setup() {
   }
   Serial.println(" connected");
 
-  setClock();  
-  
-  Serial.println("Scanning...");
+  setClock();
 
   BLEDevice::init("");
   pBLEScan = BLEDevice::getScan(); //create new scan
-  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true); //active scan uses more power, but get results faster
   pBLEScan->setInterval(100);
   pBLEScan->setWindow(99);  // less or equal setInterval value
@@ -72,31 +61,45 @@ void setup() {
 
 void loop() {
   BLEScanResults foundDevices = pBLEScan->start(scanTime, false);
-  Serial.println("Scan done!");
-  for (std::string a: cwaAddresses) {
-    Serial.println(a.c_str());
-  }
-  cwaAddresses.clear();
-  pBLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
 
-  WiFiClientSecure *client = new WiFiClientSecure;
-  if (client) {
-    client->setCACert(ROOT_CA);
-    HTTPClient https;
-    if (https.begin(*client, REMOTE_URL)) {
-      https.setAuthorization(REMOTE_USER, REMOTE_PASS);
-      String data;
-      data.concat(time(nullptr));
-      data.concat("\n");
-      for (std::string& a: cwaAddresses) {
-        data.concat(a.c_str());
-        data.concat("\n");
-      }
-      int resp = https.POST(data);
-      Serial.println(resp);
-      https.end();
+  // Filter for CWA service UUID
+  std::vector<std::string> cwaAddresses;
+  for (int i = 0; i < foundDevices.getCount(); ++i) {
+    if (foundDevices.getDevice(i).getServiceUUID().toString().rfind("0000fd6f", 0) == 0) {
+      cwaAddresses.push_back(foundDevices.getDevice(i).getAddress().toString());
     }
   }
-  
+
+  WiFiClientSecure client;
+  client.setCACert(ROOT_CA);
+
+  HTTPClient https;
+  if (https.begin(client, REMOTE_URL)) {
+    https.setAuthorization(BASIC_AUTH_USER, BASIC_AUTH_PASSWORD);
+    https.addHeader("Content-Type", "application/json");
+
+    const size_t capacity = JSON_ARRAY_SIZE(2) + JSON_ARRAY_SIZE(cwaAddresses.size()) + JSON_OBJECT_SIZE(3);
+    DynamicJsonDocument doc(capacity);
+
+    doc["time"] = time(nullptr);
+
+    JsonArray location = doc.createNestedArray("location");
+    location.add(53.56);
+    location.add(10.00);
+
+    JsonArray data = doc.createNestedArray("data");
+    for (const std::string& addr: cwaAddresses) {
+      data.add(addr.c_str());
+    }
+    String jsonData;
+    serializeJson(doc, jsonData);
+    Serial.println(jsonData);
+
+    int resp = https.POST(jsonData);
+    Serial.println(resp);
+    https.end();
+  }
+
+  pBLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
   delay(2000);
 }
