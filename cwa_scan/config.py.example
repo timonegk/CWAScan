@@ -1,0 +1,6 @@
+class Config:
+    DEBUG = False
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///cwa_scan.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    BASIC_AUTH_USER = 'username'
+    BASIC_AUTH_PASSWORD = 'password'

@@ -1,1 +1,4 @@
 CWAScanConfig.h
+cwa_scan/cwa_scan.db
+cwa_scan/config.py
+__pycache__
