@@ -31,6 +31,7 @@ const char* ROOT_CA = \
      "KOqkqm57TH2H3eDJAkSnh6/DNFu0Qg==\n" \
      "-----END CERTIFICATE-----\n";
 
-const char* REMOTE_URL = "https://cwa.example.com";
+// trailing slash is very important!
+const char* REMOTE_URL = "https://cwa.example.com/";
 const char* BASIC_AUTH_USER = "username";
 const char* BASIC_AUTH_PASSWORD = "password";

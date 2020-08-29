@@ -95,7 +95,7 @@ void loop() {
     serializeJson(doc, jsonData);
     Serial.println(jsonData);
 
-    int resp = https.POST(jsonData);
+    int resp = https.POST(jsonData.c_str());
     Serial.println(resp);
     https.end();
   }
