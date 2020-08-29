@@ -34,10 +34,7 @@ void setClock() {
   Serial.print(asctime(&timeinfo));
 }
 
-
-void setup() {
-  Serial.begin(115200);
-
+void wifiConnect() {
   // Connecting to Wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASSWORD);
@@ -49,6 +46,13 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" connected");
+}
+
+
+void setup() {
+  Serial.begin(115200);
+
+  wifiConnect();
 
   setClock();
 
@@ -88,7 +92,7 @@ void loop() {
     location.add(10.00);
 
     JsonArray data = doc.createNestedArray("data");
-    for (const std::string& addr: cwaAddresses) {
+    for (const std::string& addr : cwaAddresses) {
       data.add(addr.c_str());
     }
     String jsonData;
@@ -97,6 +101,10 @@ void loop() {
 
     int resp = https.POST(jsonData.c_str());
     Serial.println(resp);
+    if (resp < 0) {
+      // Some connection problem, try to reconnect
+      wifiConnect();
+    }
     https.end();
   }
 
