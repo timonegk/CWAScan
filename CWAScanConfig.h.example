@@ -32,3 +32,5 @@ const char* ROOT_CA = \
      "-----END CERTIFICATE-----\n";
 
 const char* REMOTE_URL = "https://cwa.example.com";
+const char* BASIC_AUTH_USER = "username";
+const char* BASIC_AUTH_PASSWORD = "password";

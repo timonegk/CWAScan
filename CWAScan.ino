@@ -81,9 +81,10 @@ void loop() {
 
   WiFiClientSecure *client = new WiFiClientSecure;
   if (client) {
-    client -> setCACert(ROOT_CA);
+    client->setCACert(ROOT_CA);
     HTTPClient https;
     if (https.begin(*client, REMOTE_URL)) {
+      https.setAuthorization(REMOTE_USER, REMOTE_PASS);
       String data;
       data.concat(time(nullptr));
       data.concat("\n");
